@@ -1,9 +1,9 @@
-FROM debian:jessie
-MAINTAINER John Goerzen <jgoerzen@complete.org>
+FROM debian:bookworm
+MAINTAINER James Cuzella <james.cuzella@lyraphase.com>
 # VNC doesn't start without xfonts-base
 RUN apt-get update && \
     apt-get -y -u dist-upgrade && \
-    apt-get -y --no-install-recommends install supervisor inetutils-syslogd && \
+    apt-get -y --no-install-recommends install supervisor inetutils-syslogd dnsutils net-tools && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 COPY supervisor/ /etc/supervisor/conf.d/
 COPY scripts/ /usr/local/bin/

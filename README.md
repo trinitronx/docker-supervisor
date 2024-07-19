@@ -9,19 +9,20 @@ logging system.  At boot, it clears /tmp for you as well.
 
 You can install with:
 
-    docker pull jgoerzen/supervisor
+    docker pull trinitronx/supervisor
 
 Your Dockerfile should use CMD to run `/usr/local/bin/boot-supervisord`.
 
 # Source
 
-This is prepared by John Goerzen <jgoerzen@complete.org> and the source
-can be found at https://github.com/jgoerzen/docker-supervisor
+This is prepared by James Cuzella (@trinitronx) and the source
+can be found at https://github.com/trinitronx/docker-supervisor
 
 # Copyright
 
 Docker scripts, etc. are
 Copyright (c) 2017 John Goerzen
+Copyright (c) 2024 James Cuzella
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
