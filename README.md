@@ -9,14 +9,14 @@ logging system.  At boot, it clears /tmp for you as well.
 
 You can install with:
 
-    docker pull trinitronx/supervisor
+    docker pull LyraPhase/supervisor
 
 Your Dockerfile should use CMD to run `/usr/local/bin/boot-supervisord`.
 
 # Source
 
 This is prepared by James Cuzella (@trinitronx) and the source
-can be found at https://github.com/trinitronx/docker-supervisor
+can be found at https://github.com/LyraPhase/docker-supervisor
 
 # Copyright
 
