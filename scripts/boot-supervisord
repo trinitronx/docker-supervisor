@@ -6,4 +6,3 @@ echo "Cleaning up; ignore errors here:"
 /etc/init.d/checkroot-bootclean.sh || true
 rm -f /tmp/.clean || true
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
-
