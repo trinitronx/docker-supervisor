@@ -165,5 +165,5 @@ jobs:
         build-args: |
           DOCKER_TAG_IMAGE_SOURCE="${DOCKER_TAG_IMAGE_SOURCE}"
           DOCKER_TAG_IMAGE_DESCRIPTION="${DOCKER_TAG_IMAGE_DESCRIPTION}"
-        tags: lyraphase/supervisord:latest,lyraphase/:${{ github.sha }}
+        tags: lyraphase/supervisord:latest,lyraphase/supervisord:${{ github.sha }}
         labels: ${{ needs.pre-check.outputs.image_labels }}
