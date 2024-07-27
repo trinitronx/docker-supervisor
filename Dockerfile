@@ -1,5 +1,10 @@
 FROM debian:bookworm
 MAINTAINER James Cuzella <james.cuzella@lyraphase.com>
+ARG DOCKER_TAG_IMAGE_SOURCE=''
+ARG DOCKER_TAG_IMAGE_DESCRIPTION=''
+LABEL org.opencontainers.image.source="${DOCKER_TAG_IMAGE_SOURCE}"
+LABEL org.opencontainers.image.description="${DOCKER_TAG_IMAGE_DESCRIPTION}"
+
 # VNC doesn't start without xfonts-base
 RUN apt-get update && \
     apt-get -y -u dist-upgrade && \
