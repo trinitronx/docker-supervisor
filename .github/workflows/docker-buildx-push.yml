@@ -60,11 +60,13 @@ jobs:
 
     - name: Export Github Repository Metadata
       id: gh_meta
-      run: >-
-        echo "repository_description=${REPOSITORY_DESCRIPTION}" >> "$GITHUB_OUTPUT"
-        echo "repository_homepage_url=${REPOSITORY_HOMEPAGE_URL}" >> "$GITHUB_OUTPUT"
-        echo "repository_github_url=${REPOSITORY_GITHUB_URL}" >> "$GITHUB_OUTPUT"
-        echo "repository_ssh_url=${REPOSITORY_SSH_URL}" >> "$GITHUB_OUTPUT"
+      run: >
+        {
+          echo "repository_description=${REPOSITORY_DESCRIPTION}" ;
+          echo "repository_homepage_url=${REPOSITORY_HOMEPAGE_URL}" ;
+          echo "repository_github_url=${REPOSITORY_GITHUB_URL}" ;
+          echo "repository_ssh_url=${REPOSITORY_SSH_URL}" ;
+        } >> "$GITHUB_OUTPUT"
 
     - name: Docker metadata
       id: meta
@@ -158,8 +160,8 @@ jobs:
         builder: ${{ steps.setup_buildx.outputs.name }}
         cache-from: type=gha
         cache-to: type=gha, mode=max
-        build-args:
-          DOCKER_TAG_IMAGE_SOURCE: "${DOCKER_TAG_IMAGE_SOURCE}"
-          DOCKER_TAG_IMAGE_DESCRIPTION: "${DOCKER_TAG_IMAGE_DESCRIPTION}"
+        build-args: |
+          DOCKER_TAG_IMAGE_SOURCE="${DOCKER_TAG_IMAGE_SOURCE}"
+          DOCKER_TAG_IMAGE_DESCRIPTION="${DOCKER_TAG_IMAGE_DESCRIPTION}"
         tags: lyraphase/supervisord:latest,lyraphase/:${{ github.sha }}
         labels: ${{ needs.pre-check.outputs.image_labels }}
