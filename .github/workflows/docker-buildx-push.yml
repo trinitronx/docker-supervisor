@@ -56,12 +56,12 @@ jobs:
             - .github/workflows/**
 
     - name: Github Repository Metadata
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       uses: varunsridharan/action-repository-meta@2.2
 
     - name: Export Github Repository Metadata
       id: gh_meta
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: >
         {
           echo "repository_description=${REPOSITORY_DESCRIPTION}" ;
