@@ -1,0 +1,165 @@
+name: Build & Push to Docker Hub & GHCR
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+    # Trigger on pull request events tagged 'release'
+    types: [ labeled, closed, edited ]
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check triggering user permissions
+      id: check_user_permissions
+      uses: actions-cool/check-user-permission@v2.2.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        username: ${{ github.triggering_actor }}
+        require: write
+
+    - name: Set push_docker_image output
+      id: should_push
+      # Note: GitHub Actions vars are String types ('true', 'false')
+      # So we must cast to string via format('{0}' ...)
+      # and test equality against string 'true' (or 'false')
+      # Fold newlines & chomp trailing '\n'
+      run: >-
+        echo "push_docker_image=${{
+          format('{0}', steps.check_user_permissions.outputs.require-result) == 'true' &&
+          github.event.pull_request.merged == true &&
+          (
+            contains(github.event.pull_request.labels.*.name, 'release') ||
+            github.event.label.name == 'release'
+          )
+        }}" >> "$GITHUB_OUTPUT"
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v44
+      with:
+        files_yaml: |
+          docker:
+            - Dockerfile
+            - scripts/**
+            - supervisor/*
+            - syslog.conf
+          repo:
+            - README.md
+            - SECURITY.md
+          gha:
+            - .github/workflows/**
+
+    - name: Github Repository Metadata
+      uses: varunsridharan/action-repository-meta@2.2
+
+    - name: Export Github Repository Metadata
+      id: gh_meta
+      run: >-
+        echo "repository_description=${REPOSITORY_DESCRIPTION}" >> "$GITHUB_OUTPUT"
+        echo "repository_homepage_url=${REPOSITORY_HOMEPAGE_URL}" >> "$GITHUB_OUTPUT"
+        echo "repository_github_url=${REPOSITORY_GITHUB_URL}" >> "$GITHUB_OUTPUT"
+        echo "repository_ssh_url=${REPOSITORY_SSH_URL}" >> "$GITHUB_OUTPUT"
+
+    - name: Docker metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        # Always push latest ;-)
+        flavor: |
+          latest=auto
+        # list of Docker images to use as base name for tags
+        images: |
+          lyraphase/supervisord
+          ghcr.io/lyraphase/supervisord
+        # generate Docker tags based on the following events/attributes
+        tags: |
+          type=schedule,pattern={{ date 'YYYY-MM-DDTHH:mm:ss.SSSSZ' }}
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha
+
+    outputs:
+      authorized: ${{ steps.check_user_permissions.outputs.require-result }}
+      push_docker_image: ${{ steps.should_push.outputs.push_docker_image }}
+      image_tags: ${{ steps.meta.outputs.tags }}
+      image_labels: ${{ steps.meta.outputs.labels }}
+      repository_description: ${{ steps.gh_meta.outputs.repository_description }}
+      repository_homepage_url: ${{ steps.gh_meta.outputs.repository_homepage_url }}
+      repository_github_url: ${{ steps.gh_meta.outputs.repository_github_url }}
+      repository_ssh_url: ${{ steps.gh_meta.outputs.repository_ssh_url }}
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Debug pre-check outputs
+      run: |
+        echo "pre-checks: "
+        echo "authorized: ${{ needs.pre-check.outputs.authorized }}"
+        echo "push_docker_image: ${{ needs.pre-check.outputs.push_docker_image }}"
+        echo "image_tags: ${{ needs.pre-check.outputs.image_tags }}"
+        echo "image_labels: ${{ needs.pre-check.outputs.image_labels }}"
+
+    - name: Debug pre-check - is push Authorized?
+      if: format('{0}', needs.pre-check.outputs.authorized) == 'true'
+      run: |
+        echo "authorized: ${{ needs.pre-check.outputs.authorized }}"
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - id: setup_buildx
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        version: latest
+        platforms: linux/amd64,linux/arm64
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      if: format('{0}', needs.pre-check.outputs.push_docker_image) == 'true'
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Login to GHCR
+      if: format('{0}', needs.pre-check.outputs.push_docker_image) == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      env:
+        DOCKER_TAG_IMAGE_SOURCE: ${{ needs.pre-check.outputs.repository_ssh_url }}
+        DOCKER_TAG_IMAGE_DESCRIPTION: ${{ needs.pre-check.outputs.repository_description }}
+      with:
+        context: .
+        push: ${{ format('{0}', needs.pre-check.outputs.push_docker_image) == 'true' }}
+        platforms: linux/amd64,linux/arm64
+        builder: ${{ steps.setup_buildx.outputs.name }}
+        cache-from: type=gha
+        cache-to: type=gha, mode=max
+        build-args:
+          DOCKER_TAG_IMAGE_SOURCE: "${DOCKER_TAG_IMAGE_SOURCE}"
+          DOCKER_TAG_IMAGE_DESCRIPTION: "${DOCKER_TAG_IMAGE_DESCRIPTION}"
+        tags: lyraphase/supervisord:latest,lyraphase/:${{ github.sha }}
+        labels: ${{ needs.pre-check.outputs.image_labels }}
